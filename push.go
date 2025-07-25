@@ -11,18 +11,24 @@ import (
 	"time"
 )
 
+type SubscribeInfo struct {
+	ProjectID string `json:"projectID,omitempty"`
+	Tag       string `json:"tag,omitempty"`
+	SessionID string `json:"sessionID,omitempty"`
+}
+
 var nc *nats.Conn
 var randGen = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 func pushRealtimeValue(item *ValueItem) {
 	payload, err := json.Marshal(item)
 	if err != nil {
-		slog.Error("Error marshaling JSON: %v", err)
+		slog.Error("Error marshaling JSON", "err", err)
 		return
 	}
 	err = nc.Publish(fmt.Sprintf("rtdb.iotopo.%s", item.Tag), payload)
 	if err != nil {
-		slog.Warn("Error publishing to nats: %v", err)
+		slog.Error("Error publishing to nats", "err", err)
 	}
 }
 
@@ -51,6 +57,27 @@ func realPush(ctx context.Context) {
 	}
 }
 
+func customPush() {
+	nc.Subscribe("topv.custom.event.subscribe", func(msg *nats.Msg) {
+		var info SubscribeInfo
+		if err := json.Unmarshal(msg.Data, &info); err != nil {
+			slog.Error("Error unmarshaling JSON", "err", err)
+			return
+		}
+		// 当接收到该消息时，说明 topv 需要订阅某测点值的实时值
+		// TODO：实时推送测点值
+	})
+
+	nc.Subscribe("topv.custom.event.unsubscribe", func(msg *nats.Msg) {
+		var info SubscribeInfo
+		if err := json.Unmarshal(msg.Data, &info); err != nil {
+			slog.Error("Error unmarshaling JSON", "err", err)
+			return
+		}
+		// TODO: 取消某推送
+	})
+}
+
 func init() {
 	opts := []nats.Option{
 		nats.MaxReconnects(-1),
@@ -59,10 +86,10 @@ func init() {
 			slog.Info("NATS reconnecting...")
 		}),
 		nats.DisconnectErrHandler(func(c *nats.Conn, err error) {
-			slog.Info("NATS disconnected:", err)
+			slog.Error("NATS disconnected", "err", err)
 		}),
 		nats.ErrorHandler(func(c *nats.Conn, s *nats.Subscription, err error) {
-			slog.Info("NATS error: %v", err)
+			slog.Error("NATS error", "err", err)
 		}),
 		nats.ConnectHandler(func(conn *nats.Conn) {
 			slog.Info("nats connected")

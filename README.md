@@ -191,7 +191,9 @@ Content-Type: application/json
 
 ## NATS 推送
 
-服务启动后会自动开始推送实时数据到 NATS，主题格式为：`rtdb.iotopo.{tag}`
+服务启动后会自动开始推送实时数据到 NATS，主题格式为：`rtdb.{projectID}.{tag}`。
+
+> 单项目版本， projectID 为固定值：`iotopo`
 
 推送的数据格式：
 ```json

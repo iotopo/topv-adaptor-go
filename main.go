@@ -176,6 +176,8 @@ func queryDevices(w http.ResponseWriter, req *http.Request) {
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	// NOTE: 本示例采用的是全量实时推送, 如果需要按需推送请根据业务需要修改
 	go realPush(ctx)
 
 	mux := http.NewServeMux()
